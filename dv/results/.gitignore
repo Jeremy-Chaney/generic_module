@@ -1,4 +1,2 @@
 
-*.log
-*.out
-*.vcd
+tests/**
