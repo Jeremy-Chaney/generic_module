@@ -8,6 +8,7 @@ module tb;
 
     logic clk = 1'b0;
     logic reset_n = 1'b1;
+    logic data_switch = 1'b0;
     logic [WIDTH-1:0] data_in;
     logic [WIDTH-1:0] data_out;
 
@@ -16,6 +17,7 @@ module tb;
     ) dut (
         .clk(clk),
         .reset_n(reset_n),
+        .data_switch(data_switch),
         .data_in(data_in),
         .data_out(data_out)
     );
