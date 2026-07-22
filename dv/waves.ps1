@@ -2,7 +2,7 @@ param(
     [string]$Distro = "Ubuntu",
     [string]$WaveFile = "results/tb.vcd",
     [ValidateSet("wayland", "x11")]
-    [string]$Backend = "wayland"
+    [string]$Backend = "x11"
 )
 
 Set-StrictMode -Version Latest
