@@ -102,7 +102,10 @@ set -euo pipefail
 export GENERIC_MODULE_ROOT='$repoRootWsl'
 mkdir -p '$resultsWsl'
 cd '$dvRootWsl'
-iverilog -g2012 -I '$tbDirWsl' -I '$testDirWsl' -f '$resolvedFileListWsl' -o '$resultsWsl/sim.out'
+iverilog -g2012 -I '$tbDirWsl' -I '$testDirWsl' -f '$resolvedFileListWsl' -o '$resultsWsl/sim.out' 2> '$resultsWsl/compile.err' || {
+	grep -v '^I give up\.$' '$resultsWsl/compile.err' >&2 || true
+	exit 2
+}
 cd '$resultsWsl'
 vvp sim.out | tee sim.log
 "@
@@ -112,7 +115,8 @@ Write-Host "Running simulation for test path '$TestPath' in WSL distro '$Distro'
 & wsl -d $Distro -- bash -lc ($bashScript -replace "`r", "")
 
 if ($LASTEXITCODE -ne 0) {
-	throw "Simulation failed with exit code $LASTEXITCODE"
+	Write-Host "Syntax Error in simulation"
+	exit $LASTEXITCODE
 }
 
 Write-Host "Simulation completed. Results written to: $resultsDir"
