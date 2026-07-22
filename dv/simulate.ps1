@@ -103,12 +103,15 @@ New-Item -ItemType Directory -Path $resultsDir -Force | Out-Null
 
 $dvRootWsl = Convert-ToWslPath $dvRoot
 $repoRootWsl = Convert-ToWslPath $env:GENERIC_MODULE_ROOT
-$tbFileListWsl = Convert-ToWslPath $tbFileList.Path
 $tbDirWsl = Convert-ToWslPath $tbDir.Path
 $testDirWsl = Convert-ToWslPath $testSelection.TestDir
 $resultsWsl = Convert-ToWslPath $resultsDir
 
-$resolvedFileList = Join-Path $tbDir.Path "TB.resolved.f"
+$tempFileListDir = Join-Path ([System.IO.Path]::GetTempPath()) ("gm_tb_filelist_{0}" -f [System.Guid]::NewGuid().ToString("N"))
+New-Item -ItemType Directory -Path $tempFileListDir -Force | Out-Null
+Copy-Item -Path (Join-Path $tbDir.Path "*.f") -Destination $tempFileListDir -Force
+
+$resolvedFileList = Join-Path $tempFileListDir "TB.resolved.f"
 $rawFileList = Get-Content -Path $tbFileList.Path -Raw
 $rawFileList = $rawFileList -replace '\$\{GENERIC_MODULE_ROOT\}', $repoRootWsl
 $rawFileList = $rawFileList -replace '\$GENERIC_MODULE_ROOT', $repoRootWsl
@@ -130,11 +133,18 @@ vvp sim.out | tee sim.log
 
 Write-Host "GENERIC_MODULE_ROOT=$env:GENERIC_MODULE_ROOT"
 Write-Host "Running simulation for test path '$TestPath' in WSL distro '$Distro'..."
-& wsl -d $Distro -- bash -lc ($bashScript -replace "`r", "")
+try {
+	& wsl -d $Distro -- bash -lc ($bashScript -replace "`r", "")
 
-if ($LASTEXITCODE -ne 0) {
-	Write-Host "Syntax Error in simulation"
-	exit $LASTEXITCODE
+	if ($LASTEXITCODE -ne 0) {
+		Write-Host "Syntax Error in simulation"
+		exit $LASTEXITCODE
+	}
+}
+finally {
+	if (Test-Path $tempFileListDir -PathType Container) {
+		Remove-Item -Path $tempFileListDir -Recurse -Force
+	}
 }
 
 Write-Host "Simulation completed. Results written to: $resultsDir"
