@@ -1,8 +1,14 @@
 
-`timescale 1us/1ns
+`timescale 1ns/1ps
+
+`ifndef TEST_FILE
+`define TEST_FILE "../tests/basic_test/test.sv"
+`endif
 
 module tb;
     localparam int WIDTH = 8;
+    localparam time RESET_HOLD = 2ns;
+    localparam time SIM_TIMEOUT = 100ns;
 
     logic clk = 1'b0;
     logic reset = 1'b1;
@@ -22,25 +28,19 @@ module tb;
     always #5ns clk = ~clk;
 
     initial begin
-        #6ns;
-        // Initialize data_in to a known value.
-        data_in = '0;
-        while(1)begin
-            #10ns;
-            data_in = data_in + 1;
-        end
-    end
-
-    initial begin
         $dumpfile("tb.vcd");
         $dumpvars(0, tb);
 
-        // Keep reset asserted briefly, then run to 20 us total.
-        #2ns reset = 1'b0;
-        #100ns;
+        // Keep reset asserted briefly, then let the selected directed test run.
+        #RESET_HOLD reset = 1'b0;
+    end
 
+    initial begin : simulation_watchdog
+        #SIM_TIMEOUT;
         $display("Simulation finished at t=%0t ns", $time);
         $finish;
     end
+
+`include `TEST_FILE
 
 endmodule
