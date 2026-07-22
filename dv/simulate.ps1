@@ -1,6 +1,7 @@
 param(
 	[string]$TestPath = "tests/basic_test",
-	[string]$Distro = "Ubuntu"
+	[string]$Distro = "Ubuntu",
+	[switch]$Clean
 )
 
 Set-StrictMode -Version Latest
@@ -75,12 +76,29 @@ if (-not (Test-Path $dvRoot -PathType Container)) {
 	throw "Expected dv directory not found under GENERIC_MODULE_ROOT: $dvRoot"
 }
 
+if ($Clean -and -not $PSBoundParameters.ContainsKey("TestPath")) {
+	$testsResultsDir = Join-Path $dvRoot "results/tests"
+	if (Test-Path $testsResultsDir -PathType Container) {
+		Remove-Item -Path $testsResultsDir -Recurse -Force
+		Write-Host "Deleted: $testsResultsDir"
+	} else {
+		Write-Host "Nothing to clean at: $testsResultsDir"
+	}
+	exit 0
+}
+
 $testSelection = Resolve-TestSelection -RelativeTestPath $TestPath -DvRoot $dvRoot
 
 $tbFileList = Resolve-Path (Join-Path $dvRoot "testbench/TB.f")
 $tbDir = Resolve-Path (Join-Path $dvRoot "testbench")
 
 $resultsDir = Join-Path $dvRoot (Join-Path "results" $testSelection.OutputRelativePath)
+
+if (($PSBoundParameters.ContainsKey("TestPath") -or $Clean) -and (Test-Path $resultsDir -PathType Container)) {
+	Remove-Item -Path $resultsDir -Recurse -Force
+	Write-Host "Deleted existing results for test path '$TestPath': $resultsDir"
+}
+
 New-Item -ItemType Directory -Path $resultsDir -Force | Out-Null
 
 $dvRootWsl = Convert-ToWslPath $dvRoot
