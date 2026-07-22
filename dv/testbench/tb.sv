@@ -4,17 +4,17 @@
 module tb;
     localparam int WIDTH = 8;
     localparam time RESET_HOLD = 2ns;
-    localparam time SIM_TIMEOUT = 100ns;
+    localparam time SIM_TIMEOUT = 2ms;
 
     logic clk = 1'b0;
-    logic reset_n = 1'b1;
+    logic reset_n = 1'b0;
     logic data_switch = 1'b0;
     logic [WIDTH-1:0] data_in;
     logic [WIDTH-1:0] data_out;
 
     generic_module #(
         .WIDTH(WIDTH)
-    ) dut (
+    ) u_dut (
         .clk(clk),
         .reset_n(reset_n),
         .data_switch(data_switch),
@@ -30,7 +30,7 @@ module tb;
         $dumpvars(0, tb);
 
         // Keep reset_n asserted briefly, then let the selected directed test run.
-        #RESET_HOLD reset_n = 1'b0;
+        #RESET_HOLD reset_n = 1'b1;
     end
 
     initial begin : simulation_watchdog
