@@ -9,6 +9,9 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
+$isLinuxPlatform = (Test-Path variable:IsLinux) -and $IsLinux
+$isMacOSPlatform = (Test-Path variable:IsMacOS) -and $IsMacOS
+
 function Get-RepoRoot {
     param([Parameter(Mandatory = $true)][string]$StartDir)
 
@@ -24,7 +27,12 @@ function Convert-ToWslPath {
     param([Parameter(Mandatory = $true)][string]$WindowsPath)
 
     $fullPath = [System.IO.Path]::GetFullPath($WindowsPath)
-    $normalized = $fullPath -replace "\\", "/"
+  $normalized = $fullPath -replace "\\", "/"
+
+  # Native Linux/macOS execution path (used in CI runners): keep Unix absolute paths.
+  if ($normalized.StartsWith("/")) {
+    return $normalized
+  }
 
     if ($normalized -match "^([A-Za-z]):/(.*)$") {
         $drive = $matches[1].ToLowerInvariant()
@@ -114,7 +122,12 @@ netlistsvg '$synthJsonWsl' -o '$svgOutWsl'
 "@
 
 Write-Host "GENERIC_MODULE_ROOT=$env:GENERIC_MODULE_ROOT"
-Write-Host "Generating synthesized web-trace artifacts for top '$Top' using WSL distro '$Distro'..."
+if ($isLinuxPlatform -or $isMacOSPlatform) {
+  Write-Host "Generating synthesized web-trace artifacts for top '$Top' using native Unix shell..."
+}
+else {
+  Write-Host "Generating synthesized web-trace artifacts for top '$Top' using WSL distro '$Distro'..."
+}
 
 $tempScriptDir = Join-Path ([System.IO.Path]::GetTempPath()) ("gm_web_trace_{0}" -f [System.Guid]::NewGuid().ToString("N"))
 New-Item -ItemType Directory -Path $tempScriptDir -Force | Out-Null
@@ -122,8 +135,14 @@ $tempScriptPath = Join-Path $tempScriptDir "run_web_trace.sh"
 Set-Content -Path $tempScriptPath -Value ($bashScript -replace "`r", "") -Encoding ascii
 
 try {
+  if ($isLinuxPlatform -or $isMacOSPlatform) {
+    & bash $tempScriptPath
+  }
+  else {
     $tempScriptWsl = Convert-ToWslPath $tempScriptPath
     & wsl -d $Distro -- bash $tempScriptWsl
+  }
+
     if ($LASTEXITCODE -ne 0) {
         exit $LASTEXITCODE
     }
@@ -378,7 +397,7 @@ svg {
 <header>
   <h1>Web Trace: $Top (Dummy Synth)</h1>
   <p>Pan: drag | Zoom: mouse wheel | Click net labels to trace | Source: $Top.synth.svg</p>
-  <div class="hint">Keyboard: <span class="kbd">f</span> fit view, <span class="kbd">Esc</span> clear highlight, <span class="kbd">?</span> help</div>
+  <div class="hint">Keyboard: <span class="kbd">s</span> focus search, <span class="kbd">f</span> fit view, <span class="kbd">Esc</span> clear highlight, <span class="kbd">?</span> help</div>
   <div class="controls">
     <input id="netSearch" type="text" placeholder="Find net/signal (substring match)" />
     <button id="clearSearch" type="button">Clear</button>
@@ -396,6 +415,7 @@ $svgInline
     <h2 id="shortcutTitle">Shortcut Help</h2>
     <p id="shortcutDesc">Use these shortcuts while browsing the schematic:</p>
     <div class="shortcuts">
+      <span class="kbd">s</span><span>Focus the search bar</span>
       <span class="kbd">f</span><span>Fit to full schematic view</span>
       <span class="kbd">Esc</span><span>Clear search and highlighting</span>
       <span class="kbd">?</span><span>Toggle this help panel</span>
@@ -610,6 +630,13 @@ if (svg) {
         return;
       }
       clearTraceFilter();
+      return;
+    }
+
+    if (!isTyping && (e.key === 's' || e.key === 'S')) {
+      e.preventDefault();
+      searchInput.focus();
+      searchInput.select();
       return;
     }
 

@@ -138,7 +138,7 @@ Use a different top module:
 
 Generated artifacts are written to:
 
-- `schematics/results/web_trace/`
+- `schematics/web_trace/`
 
 Typical files:
 
