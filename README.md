@@ -7,6 +7,9 @@ SystemVerilog RTL and DV workspace for running module-level simulations with Ica
 ```text
 generic_module/
 ├── rtl/                # RTL source files
+├── schematics/         # Web schematic trace flow
+│   ├── web_trace.ps1
+│   └── install_schematic_tools.ps1
 └── dv/                 # Verification and simulation assets
     ├── simulate.ps1    # Main simulation runner (WSL + iverilog + vvp)
     ├── waves.ps1       # Waveform helper script
@@ -97,6 +100,61 @@ Run with a different WSL distro:
 ```powershell
 .\simulate.ps1 tests/basic_test -Distro Ubuntu
 ```
+
+## Web Schematic Trace Flow
+
+This repository maintains a single schematic tracing flow based on a lightweight Yosys synthesis and a local HTML viewer.
+
+Install web-trace dependencies in WSL (Ubuntu default):
+
+```powershell
+cd .\schematics
+.\install_schematic_tools.ps1
+```
+
+Preview install actions without changing the system:
+
+```powershell
+.\install_schematic_tools.ps1 -DryRun
+```
+
+Generate and open the web schematic trace:
+
+```powershell
+.\web_trace.ps1
+```
+
+Generate without opening the browser:
+
+```powershell
+.\web_trace.ps1 -NoOpen
+```
+
+Use a different top module:
+
+```powershell
+.\web_trace.ps1 -Top generic_submodule
+```
+
+Generated artifacts are written to:
+
+- `schematics/results/web_trace/`
+
+Typical files:
+
+- `generic_module.synth.json`
+- `generic_module.synth.svg`
+- `generic_module.web_trace.html`
+
+Viewer interactions:
+
+- Pan: mouse drag
+- Zoom: mouse wheel
+- Net search: type in the search box
+- Keyboard shortcuts:
+    - `f`: fit full view
+    - `Esc`: clear highlighting/search
+    - `?`: toggle shortcut help panel
 
 ## Lint RTL With Verilator
 
