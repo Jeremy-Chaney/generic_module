@@ -7,7 +7,7 @@ on:
     paths:
       - 'rtl/**'
       - 'dv/**'
-      - '.github/workflows/pr-basic-test.yml'
+      - '.github/workflows/pr-sanity-regression.yml'
 
 jobs:
   discover-tests:
