@@ -1,0 +1,123 @@
+name: Schematic Web Trace
+
+on:
+  pull_request:
+    types:
+      - closed
+    branches:
+      - main
+    paths:
+      - rtl/**
+      - schematics/**
+  workflow_dispatch:
+    inputs:
+      top_module:
+        description: Top module name
+        required: true
+        default: generic_module
+      create_release:
+        description: Publish artifacts to a release tag
+        required: true
+        type: boolean
+        default: true
+      release_tag:
+        description: Release tag to create/update
+        required: true
+        default: schematic-latest
+
+permissions:
+  contents: write
+
+jobs:
+  build-web-trace:
+    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.merged == true }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install toolchain
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y yosys nodejs npm
+          sudo npm install -g netlistsvg
+
+      - name: Generate web trace artifacts
+        shell: bash
+        env:
+          TOP_MODULE: ${{ inputs.top_module || 'generic_module' }}
+        run: |
+          set -euo pipefail
+
+          export GENERIC_MODULE_ROOT="$GITHUB_WORKSPACE"
+          OUT_DIR="$GITHUB_WORKSPACE/schematics/results/web_trace"
+          mkdir -p "$OUT_DIR"
+
+          mapfile -t SOURCES < <(
+            sed -e "s|\${GENERIC_MODULE_ROOT}|$GENERIC_MODULE_ROOT|g" -e "s|\$GENERIC_MODULE_ROOT|$GENERIC_MODULE_ROOT|g" rtl/filelist.f \
+            | sed -e 's|//.*$||' -e 's|#.*$||' \
+            | sed -e 's|^[[:space:]]*||' -e 's|[[:space:]]*$||' \
+            | awk 'length($0) > 0'
+          )
+
+          if [ ${#SOURCES[@]} -eq 0 ]; then
+            echo "No source files found in rtl/filelist.f" >&2
+            exit 1
+          fi
+
+          YOSYS_CMD=""
+          for src in "${SOURCES[@]}"; do
+            YOSYS_CMD+="read_verilog -sv $src; "
+          done
+          YOSYS_CMD+="synth -top $TOP_MODULE; write_json $OUT_DIR/$TOP_MODULE.synth.json"
+
+          yosys -p "$YOSYS_CMD"
+          netlistsvg "$OUT_DIR/$TOP_MODULE.synth.json" -o "$OUT_DIR/$TOP_MODULE.synth.svg"
+
+          cat > "$OUT_DIR/$TOP_MODULE.web_trace.html" <<EOF
+          <!doctype html>
+          <html lang="en">
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <title>Web Trace - $TOP_MODULE</title>
+            <style>
+              body { margin: 0; font-family: Segoe UI, Arial, sans-serif; background: #10141b; color: #e6edf6; }
+              header { padding: 12px 16px; border-bottom: 1px solid #2d3a4f; }
+              main { padding: 10px; }
+              .frame { border: 1px solid #2d3a4f; border-radius: 10px; overflow: hidden; background: #0b0f15; }
+              object { width: 100%; height: calc(100vh - 96px); min-height: 420px; }
+            </style>
+          </head>
+          <body>
+            <header>
+              <strong>Web Trace - $TOP_MODULE</strong>
+            </header>
+            <main>
+              <div class="frame">
+                <object data="$TOP_MODULE.synth.svg" type="image/svg+xml"></object>
+              </div>
+            </main>
+          </body>
+          </html>
+          EOF
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-trace-${{ inputs.top_module || 'generic_module' }}
+          path: schematics/results/web_trace/
+
+      - name: Publish release assets
+        if: ${{ github.event_name == 'pull_request' || inputs.create_release }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.release_tag || 'schematic-latest' }}
+          name: Web Trace (${{ inputs.top_module || 'generic_module' }})
+          prerelease: true
+          files: |
+            schematics/results/web_trace/${{ inputs.top_module || 'generic_module' }}.synth.json
+            schematics/results/web_trace/${{ inputs.top_module || 'generic_module' }}.synth.svg
+            schematics/results/web_trace/${{ inputs.top_module || 'generic_module' }}.web_trace.html
