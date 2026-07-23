@@ -1,0 +1,54 @@
+name: PR Basic Test
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'rtl/**'
+      - 'dv/**'
+      - '.github/workflows/pr-basic-test.yml'
+
+jobs:
+  basic-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Icarus Verilog
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y iverilog
+
+      - name: Run basic_test simulation
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          RESULTS_DIR="dv/results/tests/basic_test"
+          mkdir -p "$RESULTS_DIR"
+
+          iverilog -g2012 \
+            -I dv/testbench \
+            -I dv/tests/basic_test \
+            rtl/generic_submodule.sv \
+            rtl/generic_module.sv \
+            dv/testbench/tb.sv \
+            -o "$RESULTS_DIR/sim.out" \
+            2> "$RESULTS_DIR/compile.err"
+
+          vvp "$RESULTS_DIR/sim.out" | tee "$RESULTS_DIR/sim.log"
+
+          grep -q "Simulation finished" "$RESULTS_DIR/sim.log"
+
+      - name: Upload simulation artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: basic-test-results
+          path: |
+            dv/results/tests/basic_test/sim.log
+            dv/results/tests/basic_test/compile.err
+            dv/results/tests/basic_test/tb.vcd
