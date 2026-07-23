@@ -98,6 +98,28 @@ Run with a different WSL distro:
 .\simulate.ps1 tests/basic_test -Distro Ubuntu
 ```
 
+## Lint RTL With Verilator
+
+Install Verilator in Ubuntu/WSL:
+
+```bash
+sudo apt update
+sudo apt install -y verilator
+```
+
+Run lint from Ubuntu/WSL:
+
+```bash
+cd /path/to/generic_module
+bash lint/run_verilator_lint.sh
+```
+
+Run lint from PowerShell (invokes WSL):
+
+```powershell
+.\lint\run_verilator_lint.ps1
+```
+
 Clean generated test results:
 
 ```powershell
