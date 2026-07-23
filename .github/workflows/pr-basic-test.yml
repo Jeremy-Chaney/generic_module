@@ -1,4 +1,4 @@
-name: PR Basic Test
+name: PR Sanity Regression
 
 on:
   pull_request:
@@ -10,8 +10,46 @@ on:
       - '.github/workflows/pr-basic-test.yml'
 
 jobs:
-  basic-test:
+  discover-tests:
     runs-on: ubuntu-latest
+    outputs:
+      tests: ${{ steps.collect.outputs.tests }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Parse sanity regression list
+        id: collect
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          TESTS_JSON=$(awk '
+            {
+              line = $0
+              sub(/[[:space:]]*#.*/, "", line)
+              sub(/[[:space:]]*\/\/.*/, "", line)
+              gsub(/^[[:space:]]+|[[:space:]]+$/, "", line)
+              if (line != "") print line
+            }
+          ' dv/sanity_regression | jq -R -s -c 'split("\n") | map(select(length > 0))')
+
+          if [[ "$TESTS_JSON" == "[]" ]]; then
+            echo "No tests found in dv/sanity_regression" >&2
+            exit 1
+          fi
+
+          echo "tests=$TESTS_JSON" >> "$GITHUB_OUTPUT"
+          echo "Discovered tests: $TESTS_JSON"
+
+  sanity-regression:
+    needs: discover-tests
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        test_path: ${{ fromJson(needs.discover-tests.outputs.tests) }}
 
     steps:
       - name: Checkout repository
@@ -22,20 +60,40 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y iverilog
 
-      - name: Run basic_test simulation
+      - name: Run simulation
         shell: bash
+        env:
+          TEST_PATH: ${{ matrix.test_path }}
         run: |
           set -euo pipefail
 
-          RESULTS_DIR="dv/results/tests/basic_test"
+          if [[ -d "dv/$TEST_PATH" ]]; then
+            TEST_DIR="dv/$TEST_PATH"
+            RESULTS_REL="$TEST_PATH"
+          elif [[ -f "dv/$TEST_PATH" ]]; then
+            TEST_DIR="$(dirname "dv/$TEST_PATH")"
+            RESULTS_REL="$(dirname "$TEST_PATH")"
+            if [[ "$RESULTS_REL" == "." ]]; then
+              RESULTS_REL="test"
+            fi
+          else
+            echo "Test path not found: $TEST_PATH" >&2
+            exit 1
+          fi
+
+          RESULTS_DIR="dv/results/$RESULTS_REL"
           mkdir -p "$RESULTS_DIR"
+
+          TMP_FILELIST_DIR="$(mktemp -d)"
+          cp dv/testbench/*.f "$TMP_FILELIST_DIR"/
+          for filelist in "$TMP_FILELIST_DIR"/*.f; do
+            sed -i "s|\${GENERIC_MODULE_ROOT}|$GITHUB_WORKSPACE|g; s|\$GENERIC_MODULE_ROOT|$GITHUB_WORKSPACE|g" "$filelist"
+          done
 
           iverilog -g2012 \
             -I dv/testbench \
-            -I dv/tests/basic_test \
-            rtl/generic_submodule.sv \
-            rtl/generic_module.sv \
-            dv/testbench/tb.sv \
+            -I "$TEST_DIR" \
+            -f "$TMP_FILELIST_DIR/TB.f" \
             -o "$RESULTS_DIR/sim.out" \
             2> "$RESULTS_DIR/compile.err"
 
@@ -43,12 +101,14 @@ jobs:
 
           grep -q "Simulation finished" "$RESULTS_DIR/sim.log"
 
+          rm -rf "$TMP_FILELIST_DIR"
+
       - name: Upload simulation artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: basic-test-results
+          name: sanity-regression-${{ strategy.job-index }}
           path: |
-            dv/results/tests/basic_test/sim.log
-            dv/results/tests/basic_test/compile.err
-            dv/results/tests/basic_test/tb.vcd
+            dv/results/**/sim.log
+            dv/results/**/compile.err
+            dv/results/**/tb.vcd
