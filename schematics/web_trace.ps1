@@ -312,6 +312,21 @@ svg {
 .trace-dim {
   opacity: 0.2;
 }
+.trace-wire-hit {
+  stroke: var(--hit) !important;
+  stroke-width: 2.5px !important;
+}
+.trace-wire-selected {
+  stroke: var(--warn) !important;
+  stroke-width: 3px !important;
+}
+.trace-wire-hit[style*="fill:#000"],
+.trace-wire-selected[style*="fill:#000"] {
+  fill: var(--hit) !important;
+}
+.trace-wire-selected[style*="fill:#000"] {
+  fill: var(--warn) !important;
+}
 [hidden] {
   display: none !important;
 }
@@ -481,6 +496,22 @@ function clearNodeClasses(nodes) {
   });
 }
 
+function parseNetClassesFromLabel(label) {
+  var trimmed = normalizeLabel(label || '');
+  var classes = [];
+
+  if (/^\d+$/.test(trimmed)) {
+    classes.push('net_' + trimmed);
+  }
+
+  var netMatch = trimmed.match(/\bnet[_\s]?(\d+)\b/i);
+  if (netMatch) {
+    classes.push('net_' + netMatch[1]);
+  }
+
+  return Array.from(new Set(classes));
+}
+
 if (svg) {
   var viewBox = svg.viewBox.baseVal;
   if (!viewBox || (viewBox.width === 0 && viewBox.height === 0)) {
@@ -499,11 +530,34 @@ if (svg) {
       label: label,
       labelLower: label.toLowerCase(),
       group: group,
-      textNode: textNode
+      textNode: textNode,
+      netClasses: parseNetClassesFromLabel(label)
     };
   }).filter(function(entry){ return entry.label.length > 0; });
 
   var groups = Array.from(new Set(labelEntries.map(function(entry){ return entry.group; })));
+  var netElements = Array.from(svg.querySelectorAll('[class*="net_"]'));
+  var netElementsByClass = new Map();
+
+  netElements.forEach(function(el) {
+    Array.from(el.classList || []).forEach(function(cls) {
+      if (!cls.startsWith('net_')) {
+        return;
+      }
+
+      if (!netElementsByClass.has(cls)) {
+        netElementsByClass.set(cls, []);
+      }
+      netElementsByClass.get(cls).push(el);
+    });
+  });
+
+  function clearWireClasses() {
+    netElements.forEach(function(el) {
+      el.classList.remove('trace-wire-hit');
+      el.classList.remove('trace-wire-selected');
+    });
+  }
 
   labelEntries.forEach(function(entry){
     entry.textNode.style.cursor = 'pointer';
@@ -543,6 +597,7 @@ if (svg) {
     var queryLower = query.toLowerCase();
 
     clearNodeClasses(groups);
+    clearWireClasses();
 
     if (!queryLower) {
       statusEl.textContent = 'No filter';
@@ -567,9 +622,33 @@ if (svg) {
       matches[0].group.classList.add('trace-selected');
     }
 
+    var matchedNetClasses = new Set();
+    matches.forEach(function(entry) {
+      entry.netClasses.forEach(function(netClass) {
+        matchedNetClasses.add(netClass);
+      });
+    });
+
+    var fallbackNetClasses = parseNetClassesFromLabel(query);
+    if (matchedNetClasses.size === 0 && fallbackNetClasses.length > 0) {
+      fallbackNetClasses.forEach(function(netClass) {
+        matchedNetClasses.add(netClass);
+      });
+    }
+
+    Array.from(matchedNetClasses).forEach(function(netClass, idx) {
+      var wireEls = netElementsByClass.get(netClass) || [];
+      wireEls.forEach(function(el) {
+        el.classList.add('trace-wire-hit');
+        if (idx === 0) {
+          el.classList.add('trace-wire-selected');
+        }
+      });
+    });
+
     var uniqueLabels = Array.from(new Set(matches.map(function(entry){ return entry.label; })));
     renderMatchList(uniqueLabels);
-    statusEl.textContent = matches.length.toString() + ' label matches, ' + hitGroups.size.toString() + ' highlighted groups';
+    statusEl.textContent = matches.length.toString() + ' label matches, ' + hitGroups.size.toString() + ' highlighted groups, ' + matchedNetClasses.size.toString() + ' traced nets';
   }
 
   function fitToFullView() {
@@ -586,6 +665,7 @@ if (svg) {
   function clearTraceFilter() {
     searchInput.value = '';
     clearNodeClasses(groups);
+    clearWireClasses();
     renderMatchList([]);
     statusEl.textContent = 'No filter';
   }
