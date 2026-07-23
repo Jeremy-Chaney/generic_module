@@ -156,6 +156,37 @@ Viewer interactions:
     - `Esc`: clear highlighting/search
     - `?`: toggle shortcut help panel
 
+### Publish From GitHub (Artifact + Release)
+
+You can generate the schematic directly from GitHub Actions and publish it on the repository page.
+
+Workflow file:
+
+- `.github/workflows/schematic-web-trace.yml`
+
+How to run:
+
+Automatic run:
+
+1. Open a PR targeting `main` with changes under `rtl/` or `schematics/`.
+2. Merge the PR.
+3. The workflow runs on PR close, gated to merged PRs only.
+
+Manual run:
+
+1. Go to Actions -> `Schematic Web Trace` -> `Run workflow`.
+2. Set `top_module` (default: `generic_module`).
+3. Leave `create_release=true` to publish release assets.
+4. Choose `release_tag` (default: `schematic-latest`).
+
+What gets published:
+
+- Workflow artifact: `web-trace-<top_module>`
+- Release assets on the selected tag:
+    - `<top_module>.synth.json`
+    - `<top_module>.synth.svg`
+    - `<top_module>.web_trace.html`
+
 ## Lint RTL With Verilator
 
 Install Verilator in Ubuntu/WSL:
