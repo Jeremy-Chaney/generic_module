@@ -74,6 +74,24 @@ Run a specific test directory:
 .\simulate.ps1 tests/submodule_test
 ```
 
+Run a regression list (line-delimited test paths, supports comments and blank lines):
+
+```powershell
+.\run_regression.ps1
+```
+
+Run a custom regression list with parallel workers:
+
+```powershell
+.\run_regression.ps1 -RegressionList sanity_regression -MaxParallel 4
+```
+
+Stop launching new tests after the first failure:
+
+```powershell
+.\run_regression.ps1 -RegressionList sanity_regression -MaxParallel 4 -StopOnFailure
+```
+
 Run with a different WSL distro:
 
 ```powershell
@@ -103,3 +121,4 @@ Typical outputs include:
 
 - `simulate.ps1` resolves repository paths for WSL and launches compile/run inside Linux.
 - The first argument is positional test path. It can be either a test folder (containing `test.sv`) or a direct `test.sv` file path relative to `dv`.
+- `run_regression.ps1` reads a regression list (for example `dv/sanity_regression`) and runs listed tests through `simulate.ps1` in parallel.
