@@ -66,6 +66,7 @@ jobs:
           TEST_PATH: ${{ matrix.test_path }}
         run: |
           set -euo pipefail
+          export GENERIC_MODULE_ROOT="$GITHUB_WORKSPACE"
 
           if [[ -d "dv/$TEST_PATH" ]]; then
             TEST_DIR="dv/$TEST_PATH"
