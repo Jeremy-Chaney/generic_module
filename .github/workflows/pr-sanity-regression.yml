@@ -113,3 +113,34 @@ jobs:
             dv/results/**/sim.log
             dv/results/**/compile.err
             dv/results/**/tb.vcd
+
+  regression-gate:
+    needs:
+      - discover-tests
+      - sanity-regression
+    if: always()
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Verify regression stages succeeded
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          DISCOVER_RESULT='${{ needs.discover-tests.result }}'
+          REGRESSION_RESULT='${{ needs.sanity-regression.result }}'
+
+          echo "discover-tests result: $DISCOVER_RESULT"
+          echo "sanity-regression result: $REGRESSION_RESULT"
+
+          if [[ "$DISCOVER_RESULT" != "success" ]]; then
+            echo "discover-tests did not succeed." >&2
+            exit 1
+          fi
+
+          if [[ "$REGRESSION_RESULT" != "success" ]]; then
+            echo "sanity-regression matrix did not fully succeed." >&2
+            exit 1
+          fi
+
+          echo "Regression gate passed."
