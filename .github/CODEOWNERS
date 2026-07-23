@@ -1,0 +1,9 @@
+# CODEOWNERS
+
+* @Jeremy-Chaney
+
+/.github/workflows/ @Jeremy-Chaney
+
+/rtl/ @Jeremy-Chaney
+/dv/ @Jeremy-Chaney
+/lint/ @Jeremy-Chaney

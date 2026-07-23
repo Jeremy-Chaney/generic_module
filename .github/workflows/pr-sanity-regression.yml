@@ -1,0 +1,146 @@
+name: PR Sanity Regression
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'rtl/**'
+      - 'dv/**'
+      - '.github/workflows/pr-sanity-regression.yml'
+
+jobs:
+  discover-tests:
+    runs-on: ubuntu-latest
+    outputs:
+      tests: ${{ steps.collect.outputs.tests }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Parse sanity regression list
+        id: collect
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          TESTS_JSON=$(awk '
+            {
+              line = $0
+              sub(/[[:space:]]*#.*/, "", line)
+              sub(/[[:space:]]*\/\/.*/, "", line)
+              gsub(/^[[:space:]]+|[[:space:]]+$/, "", line)
+              if (line != "") print line
+            }
+          ' dv/sanity_regression | jq -R -s -c 'split("\n") | map(select(length > 0))')
+
+          if [[ "$TESTS_JSON" == "[]" ]]; then
+            echo "No tests found in dv/sanity_regression" >&2
+            exit 1
+          fi
+
+          echo "tests=$TESTS_JSON" >> "$GITHUB_OUTPUT"
+          echo "Discovered tests: $TESTS_JSON"
+
+  sanity-regression:
+    needs: discover-tests
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        test_path: ${{ fromJson(needs.discover-tests.outputs.tests) }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Icarus Verilog
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y iverilog
+
+      - name: Run simulation
+        shell: bash
+        env:
+          TEST_PATH: ${{ matrix.test_path }}
+        run: |
+          set -euo pipefail
+          export GENERIC_MODULE_ROOT="$GITHUB_WORKSPACE"
+
+          if [[ -d "dv/$TEST_PATH" ]]; then
+            TEST_DIR="dv/$TEST_PATH"
+            RESULTS_REL="$TEST_PATH"
+          elif [[ -f "dv/$TEST_PATH" ]]; then
+            TEST_DIR="$(dirname "dv/$TEST_PATH")"
+            RESULTS_REL="$(dirname "$TEST_PATH")"
+            if [[ "$RESULTS_REL" == "." ]]; then
+              RESULTS_REL="test"
+            fi
+          else
+            echo "Test path not found: $TEST_PATH" >&2
+            exit 1
+          fi
+
+          RESULTS_DIR="dv/results/$RESULTS_REL"
+          mkdir -p "$RESULTS_DIR"
+
+          TMP_FILELIST_DIR="$(mktemp -d)"
+          cp dv/testbench/*.f "$TMP_FILELIST_DIR"/
+          for filelist in "$TMP_FILELIST_DIR"/*.f; do
+            sed -i "s|\${GENERIC_MODULE_ROOT}|$GITHUB_WORKSPACE|g; s|\$GENERIC_MODULE_ROOT|$GITHUB_WORKSPACE|g" "$filelist"
+          done
+
+          iverilog -g2012 \
+            -I dv/testbench \
+            -I "$TEST_DIR" \
+            -f "$TMP_FILELIST_DIR/TB.f" \
+            -o "$RESULTS_DIR/sim.out" \
+            2> "$RESULTS_DIR/compile.err"
+
+          vvp "$RESULTS_DIR/sim.out" | tee "$RESULTS_DIR/sim.log"
+
+          grep -q "Simulation finished" "$RESULTS_DIR/sim.log"
+
+          rm -rf "$TMP_FILELIST_DIR"
+
+      - name: Upload simulation artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sanity-regression-${{ strategy.job-index }}
+          path: |
+            dv/results/**/sim.log
+            dv/results/**/compile.err
+            dv/results/**/tb.vcd
+
+  regression-gate:
+    needs:
+      - discover-tests
+      - sanity-regression
+    if: always()
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Verify regression stages succeeded
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          DISCOVER_RESULT='${{ needs.discover-tests.result }}'
+          REGRESSION_RESULT='${{ needs.sanity-regression.result }}'
+
+          echo "discover-tests result: $DISCOVER_RESULT"
+          echo "sanity-regression result: $REGRESSION_RESULT"
+
+          if [[ "$DISCOVER_RESULT" != "success" ]]; then
+            echo "discover-tests did not succeed." >&2
+            exit 1
+          fi
+
+          if [[ "$REGRESSION_RESULT" != "success" ]]; then
+            echo "sanity-regression matrix did not fully succeed." >&2
+            exit 1
+          fi
+
+          echo "Regression gate passed."
