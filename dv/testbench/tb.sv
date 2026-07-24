@@ -8,7 +8,14 @@ module tb;
 
     logic clk = 1'b0;
     logic reset_n = 1'b0;
-    logic data_switch = 1'b0;
+    logic [31:0] paddr;
+    logic psel;
+    logic penable;
+    logic pwrite;
+    logic [31:0] pwdata;
+    logic [31:0] prdata;
+    logic pready;
+    logic pslverr;
     logic [WIDTH-1:0] data_in;
     logic [WIDTH-1:0] data_out;
 
@@ -17,9 +24,29 @@ module tb;
     ) u_dut (
         .clk(clk),
         .reset_n(reset_n),
-        .data_switch(data_switch),
+        .paddr(paddr),
+        .psel(psel),
+        .penable(penable),
+        .pwrite(pwrite),
+        .pwdata(pwdata),
+        .prdata(prdata),
+        .pready(pready),
+        .pslverr(pslverr),
         .data_in(data_in),
         .data_out(data_out)
+    );
+
+    apb_agent u_apb_agent (
+        .clk(clk),
+        .reset_n(reset_n),
+        .paddr(paddr),
+        .psel(psel),
+        .penable(penable),
+        .pwrite(pwrite),
+        .pwdata(pwdata),
+        .prdata(prdata),
+        .pready(pready),
+        .pslverr(pslverr)
     );
 
     // clocking logic for the testbench

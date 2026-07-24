@@ -4,18 +4,27 @@ module generic_module #(
 ) (
     input clk,
     input reset_n,
-    input data_switch,
+    input [31:0] paddr,
+    input psel,
+    input penable,
+    input pwrite,
+    input [31:0] pwdata,
+    output logic [31:0] prdata,
+    output logic pready,
+    output logic pslverr,
     input [WIDTH-1:0] data_in,
     output wire [WIDTH-1:0]  data_out
 );
 
-    wire [WIDTH-1:0] data_in_local = data_switch ? '0 : data_in;
-    wire [WIDTH-1:0] data_in_submodule = data_switch ? data_in : '0;
+    logic data_switch_cfg;
+
+    wire [WIDTH-1:0] data_in_local = data_switch_cfg ? '0 : data_in;
+    wire [WIDTH-1:0] data_in_submodule = data_switch_cfg ? data_in : '0;
 
     wire [WIDTH-1:0] data_out_submodule;
     reg [WIDTH-1:0] data_out_local;
 
-    assign data_out = data_switch ? data_out_submodule : data_out_local;
+    assign data_out = data_switch_cfg ? data_out_submodule : data_out_local;
 
     always @(posedge clk or negedge reset_n) begin
         if (!reset_n) begin
@@ -32,5 +41,22 @@ module generic_module #(
         .reset_n(reset_n),
         .data_in(data_in_submodule),
         .data_out(data_out_submodule)
+    );
+
+    config_registers #(
+        .WIDTH(WIDTH)
+    ) u_config_registers (
+        .clk(clk),
+        .reset_n(reset_n),
+        .paddr(paddr),
+        .psel(psel),
+        .penable(penable),
+        .pwrite(pwrite),
+        .pwdata(pwdata),
+        .prdata(prdata),
+        .pready(pready),
+        .pslverr(pslverr),
+        .data_switch_cfg(data_switch_cfg),
+        .status_data(data_out)
     );
 endmodule
