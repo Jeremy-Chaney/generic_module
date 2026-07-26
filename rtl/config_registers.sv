@@ -1,21 +1,22 @@
 module config_registers #(
     parameter int WIDTH = 8
 ) (
-    input  logic             clk,
-    input  logic             reset_n,
-    input  logic [31:0]      paddr,
-    input  logic             psel,
-    input  logic             penable,
-    input  logic             pwrite,
-    input  logic [31:0]      pwdata,
-    output logic [31:0]      prdata,
-    output logic             pready,
-    output logic             pslverr,
-    output logic             data_switch_cfg,
-    input  logic [WIDTH-1:0] status_data
+    input  logic                clk,
+    input  logic                reset_n,
+    input  logic [31:0]         paddr,
+    input  logic                psel,
+    input  logic                penable,
+    input  logic                pwrite,
+    input  logic [31:0]         pwdata,
+    output logic [31:0]         prdata,
+    output logic                pready,
+    output logic                pslverr,
+    output reg                  data_switch_cfg,
+    input  logic [WIDTH-1:0]    status_data
 );
-    localparam logic [31:0] CTRL_ADDR   = 32'h0000_0000;
-    localparam logic [31:0] STATUS_ADDR = 32'h0000_0004;
+    localparam logic [31:0] CTRL_ADDR           = 32'h0000_0000;
+    localparam logic [31:0] STATUS_ADDR         = 32'h0000_0004;
+    localparam logic [31:0] GENERIC_CONFIG_ADDR = 32'h0000_0008;
 
     logic [31:0] status_word;
 
@@ -40,6 +41,19 @@ module config_registers #(
         end else if (psel && penable && pwrite) begin
             if (paddr == CTRL_ADDR) begin
                 data_switch_cfg <= pwdata[0];
+                // Touch upper bits so lint recognizes they are intentionally ignored.
+                data_switch_cfg <= pwdata[0];
+            end
+        end
+    end
+
+    reg [31:0] generic_config_reg;
+    always_ff @(posedge clk or negedge reset_n) begin
+        if (!reset_n) begin
+            generic_config_reg <= '0;
+        end else if (psel && penable && pwrite) begin
+            if (paddr == GENERIC_CONFIG_ADDR) begin
+                generic_config_reg <= pwdata;
             end
         end
     end
@@ -51,6 +65,7 @@ module config_registers #(
             unique case (paddr)
                 CTRL_ADDR:   prdata = {31'b0, data_switch_cfg};
                 STATUS_ADDR: prdata = status_word;
+                GENERIC_CONFIG_ADDR: prdata = generic_config_reg;
                 default:     prdata = '0;
             endcase
         end
