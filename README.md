@@ -32,11 +32,11 @@ generic_module/
 
 ## Setup Links
 
-- WSL install (Microsoft): https://learn.microsoft.com/windows/wsl/install
-- WSL commands and distro management (Microsoft): https://learn.microsoft.com/windows/wsl/basic-commands
-- Ubuntu on WSL documentation (Canonical): https://documentation.ubuntu.com/wsl/latest/
-- Icarus Verilog documentation: https://steveicarus.github.io/iverilog/
-- GTKWave project page: https://gtkwave.sourceforge.net/
+- WSL install (Microsoft): [https://learn.microsoft.com/windows/wsl/install]
+- WSL commands and distro management (Microsoft): [https://learn.microsoft.com/windows/wsl/basic-commands]
+- Ubuntu on WSL documentation (Canonical): http[s://documentation.ubuntu.com/wsl/latest/]
+- Icarus Verilog documentation: htt[ps://steveicarus.github.io/iverilog/]
+- GTKWave project page: [https://gtkwave.sourceforge.net/]
 
 ### Tested Setup (Compatible With This Repo)
 
@@ -152,9 +152,9 @@ Viewer interactions:
 - Zoom: mouse wheel
 - Net search: type in the search box
 - Keyboard shortcuts:
-    - `f`: fit full view
-    - `Esc`: clear highlighting/search
-    - `?`: toggle shortcut help panel
+  - `f`: fit full view
+  - `Esc`: clear highlighting/search
+  - `?`: toggle shortcut help panel
 
 ### Publish From GitHub (Artifact + Release)
 
@@ -183,9 +183,9 @@ What gets published:
 
 - Workflow artifact: `web-trace-<top_module>`
 - Release assets on the selected tag:
-    - `<top_module>.synth.json`
-    - `<top_module>.synth.svg`
-    - `<top_module>.web_trace.html`
+  - `<top_module>.synth.json`
+  - `<top_module>.synth.svg`
+  - `<top_module>.web_trace.html`
 
 ## Lint RTL With Verilator
 
