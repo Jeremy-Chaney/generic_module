@@ -118,6 +118,12 @@ if (Test-Path $fontsSource) {
     Copy-Item -Path $fontsSource -Destination $fontsDest -Recurse -Force
 }
 
+$schematicsSource = Join-Path $PSScriptRoot "..\schematics\web_trace"
+$schematicsDest = Join-Path $tempDir "schematics\web_trace"
+if (Test-Path $schematicsSource) {
+    Copy-Item -Path $schematicsSource -Destination $schematicsDest -Recurse -Force
+}
+
 $tempFiles = @()
 foreach ($inputFile in $inputFiles) {
     $tempFile = Join-Path $tempDir $inputFile
