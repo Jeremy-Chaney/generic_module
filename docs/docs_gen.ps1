@@ -5,6 +5,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
 $scriptRoot = $PSScriptRoot
+$repoRoot = [System.IO.Path]::GetFullPath((Join-Path $scriptRoot ".."))
 
 $inputFiles = @(
     "pandocs_cover_and_config.md", # pandocs_cover_and_config.md should be first since it defines parameters for the entire document as well as the cover page.
@@ -16,7 +17,7 @@ $inputFiles = @(
 
 $outputFile = "Generic_Module.pdf"
 $outputPath = Join-Path $scriptRoot $outputFile
-$tempDir = Join-Path $scriptRoot ".pandoc_tmp"
+$tempDir = Join-Path $repoRoot ".pandoc_tmp"
 
 # Want table captions to render as above the tables in the markdown,
 # but pandocs needs them to be below the tables to render correctly in the PDF.
@@ -116,12 +117,6 @@ $fontsSource = Join-Path $PSScriptRoot "fonts"
 $fontsDest = Join-Path $tempDir "fonts"
 if (Test-Path $fontsSource) {
     Copy-Item -Path $fontsSource -Destination $fontsDest -Recurse -Force
-}
-
-$schematicsSource = Join-Path $PSScriptRoot "..\schematics\web_trace"
-$schematicsDest = Join-Path $tempDir "schematics\web_trace"
-if (Test-Path $schematicsSource) {
-    Copy-Item -Path $schematicsSource -Destination $schematicsDest -Recurse -Force
 }
 
 $tempFiles = @()
