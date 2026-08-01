@@ -57,11 +57,22 @@ gtkwave --version
 
 This DV flow is validated with Ubuntu under WSL and tools installed from Ubuntu apt.
 
-## Run Simulations
+## Initialize PowerShell Session
 
-From the `dv` directory:
+Before running the PowerShell helper scripts in this repo, initialize the shared path environment once per PowerShell session from the repository root:
 
 ```powershell
+.\setup.ps1
+```
+
+This exports `REPO_ROOT`, `SCRIPTS_ROOT`, `DV_ROOT`, `RTL_ROOT`, `LINT_ROOT`, `SCHEMATICS_ROOT`, and `DOCS_ROOT` for the current shell.
+
+## Run Simulations
+
+From the repository root:
+
+```powershell
+.\setup.ps1
 cd .\dv
 ```
 
@@ -101,6 +112,35 @@ Run with a different WSL distro:
 .\simulate.ps1 tests/basic_test -Distro Ubuntu
 ```
 
+## Register Generation Flow
+
+The register block source `rtl/config_registers.sv` is generated from the CSV source of truth:
+
+- `scripts/register_map.csv`
+
+Use this command from repository root to regenerate RTL and docs:
+
+```powershell
+python scripts/gen_register_artifacts.py
+```
+
+Generated outputs:
+
+- `rtl/config_registers.sv`
+- `docs/register_map.md`
+
+Register documentation table:
+
+- `docs/register_map.md`
+
+Supported field access behaviors in the CSV:
+
+- `RO`
+- `RW`
+- `W1C` (with hardware-set signal support)
+
+Do not hand-edit generated files. Update `scripts/register_map.csv`, rerun the generator, and commit generated artifacts in the same change.
+
 ## Web Schematic Trace Flow
 
 This repository maintains a single schematic tracing flow based on a lightweight Yosys synthesis and a local HTML viewer.
@@ -108,6 +148,7 @@ This repository maintains a single schematic tracing flow based on a lightweight
 Install web-trace dependencies in WSL (Ubuntu default):
 
 ```powershell
+.\setup.ps1
 cd .\schematics
 .\install_schematic_tools.ps1
 ```
@@ -115,25 +156,29 @@ cd .\schematics
 Preview install actions without changing the system:
 
 ```powershell
-.\install_schematic_tools.ps1 -DryRun
+.\setup.ps1
+.\schematics\install_schematic_tools.ps1 -DryRun
 ```
 
 Generate and open the web schematic trace:
 
 ```powershell
-.\web_trace.ps1
+.\setup.ps1
+.\schematics\web_trace.ps1
 ```
 
 Generate without opening the browser:
 
 ```powershell
-.\web_trace.ps1 -NoOpen
+.\setup.ps1
+.\schematics\web_trace.ps1 -NoOpen
 ```
 
 Use a different top module:
 
 ```powershell
-.\web_trace.ps1 -Top generic_submodule
+.\setup.ps1
+.\schematics\web_trace.ps1 -Top generic_submodule
 ```
 
 Generated artifacts are written to:
@@ -206,13 +251,15 @@ bash lint/run_verilator_lint.sh
 Run lint from PowerShell (invokes WSL):
 
 ```powershell
+.\setup.ps1
 .\lint\run_verilator_lint.ps1
 ```
 
 Clean generated test results:
 
 ```powershell
-.\simulate.ps1 -Clean
+.\setup.ps1
+.\dv\simulate.ps1 -Clean
 ```
 
 ## Output Locations
