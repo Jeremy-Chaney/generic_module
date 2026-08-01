@@ -149,6 +149,7 @@ Local prerequisites:
 
 - Pandoc
 - XeLaTeX (MiKTeX or TeX Live)
+- Schematic SVG generation from `rtl/filelist.f` if you want the embedded schematic image to refresh before building the PDF
 
 Run from repository root:
 
@@ -161,6 +162,7 @@ Generated output:
 - `docs/Generic_Module.pdf`
 
 The docs flow preprocesses the Markdown inputs before running Pandoc so that table captions and explicit pagebreak markers render correctly in the PDF.
+It also regenerates the schematic image used by [docs/Summary.md](docs/Summary.md) before the PDF build in GitHub Actions.
 
 ### Publish Docs From GitHub (Artifact + Release)
 

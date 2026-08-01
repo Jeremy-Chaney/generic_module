@@ -8,6 +8,8 @@ on:
       - main
     paths:
       - docs/**
+      - rtl/**
+      - schematics/**
       - scripts/register_map.csv
       - scripts/gen_register_artifacts.py
       - .github/workflows/docs-generation.yml
@@ -60,6 +62,46 @@ jobs:
             texlive-fonts-recommended \
             texlive-fonts-extra \
             texlive-xetex
+
+      - name: Install schematic generation dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y yosys nodejs npm
+          sudo npm install -g netlistsvg
+
+      - name: Generate schematic image
+        shell: bash
+        env:
+          TOP_MODULE: generic_module
+        run: |
+          set -euo pipefail
+
+          export GENERIC_MODULE_ROOT="$REPO_ROOT"
+          OUT_DIR="$SCHEMATICS_ROOT/web_trace"
+          mkdir -p "$OUT_DIR"
+
+          mapfile -t SOURCES < <(
+            sed -e "s|\${GENERIC_MODULE_ROOT}|$GENERIC_MODULE_ROOT|g" -e "s|\$GENERIC_MODULE_ROOT|$GENERIC_MODULE_ROOT|g" "$RTL_ROOT/filelist.f" \
+            | sed -e 's|//.*$||' -e 's|#.*$||' \
+            | sed -e 's|^[[:space:]]*||' -e 's|[[:space:]]*$||' \
+            | awk 'length($0) > 0'
+          )
+
+          if [ ${#SOURCES[@]} -eq 0 ]; then
+            echo "No source files found in $RTL_ROOT/filelist.f" >&2
+            exit 1
+          fi
+
+          YOSYS_CMD=""
+          for src in "${SOURCES[@]}"; do
+            YOSYS_CMD+="read_verilog -sv $src; "
+          done
+          YOSYS_CMD+="synth -top $TOP_MODULE; write_json $OUT_DIR/$TOP_MODULE.synth.json"
+
+          yosys -p "$YOSYS_CMD"
+          netlistsvg "$OUT_DIR/$TOP_MODULE.synth.json" -o "$OUT_DIR/$TOP_MODULE.synth.svg"
 
       - name: Regenerate register artifacts
         shell: bash
