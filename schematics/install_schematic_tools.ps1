@@ -6,20 +6,12 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
-function Convert-ToWslPath {
-    param([Parameter(Mandatory = $true)][string]$WindowsPath)
-
-    $fullPath = [System.IO.Path]::GetFullPath($WindowsPath)
-    $normalized = $fullPath -replace "\\", "/"
-
-    if ($normalized -match "^([A-Za-z]):/(.*)$") {
-        $drive = $matches[1].ToLowerInvariant()
-        $rest = $matches[2]
-        return "/mnt/$drive/$rest"
-    }
-
-    throw "Unable to convert Windows path to WSL path: $WindowsPath"
+$commonScript = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot "..\scripts\common.ps1"))
+if (-not (Test-Path $commonScript -PathType Leaf)) {
+    throw "Shared helper script not found: $commonScript"
 }
+. $commonScript
+Assert-RepoSetup
 
 $bashScript = @'
 set -euo pipefail

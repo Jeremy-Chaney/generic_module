@@ -1,0 +1,6 @@
+register_name,address,field_name,lsb,width,access,reset,description,bind,hw_set
+Control,0x00000000,data_switch_cfg,0,1,RW,0,Routes data through local path (0) or submodule path (1),output:data_switch_cfg,
+Status,0x00000004,switch_status,0,1,RO,0,Reflects the current data_switch_cfg mode,input:data_switch_cfg,
+Status,0x00000004,status_data,1,WIDTH,RO,0,Live status bits sourced from status_data,input_vec:status_data,
+Generic Config,0x00000008,generic_config,0,32,RW,0,Generic configuration register,
+Interrupt Status,0x0000000C,irq_event,0,1,W1C,0,Interrupt event flag set by hardware and cleared by writing 1,,irq_event_set

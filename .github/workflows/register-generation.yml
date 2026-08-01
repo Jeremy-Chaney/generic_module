@@ -1,14 +1,15 @@
-name: PR Verilator Lint
+name: Register Artifact Consistency
 
 on:
   pull_request:
     branches:
       - main
     paths:
-      - 'rtl/**'
-      - 'lint/**'
-      - 'scripts/**'
-      - '.github/workflows/pr-verilator-lint.yml'
+      - 'scripts/register_map.csv'
+      - 'scripts/gen_register_artifacts.py'
+      - 'rtl/config_registers.sv'
+      - 'docs/register_map.md'
+      - '.github/workflows/register-generation.yml'
 
 env:
   REPO_ROOT: ${{ github.workspace }}
@@ -20,27 +21,24 @@ env:
   DOCS_ROOT: ${{ github.workspace }}/docs
 
 jobs:
-  verilator-lint:
+  check-generated-artifacts:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install Verilator
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y verilator
-
-      - name: Generate register artifacts
+      - name: Regenerate artifacts
         shell: bash
         run: |
           set -euo pipefail
           python3 "$SCRIPTS_ROOT/gen_register_artifacts.py"
 
-      - name: Run Verilator lint
+      - name: Verify no artifact drift
         shell: bash
         run: |
           set -euo pipefail
-          chmod +x "$LINT_ROOT/run_verilator_lint.sh"
-          "$LINT_ROOT/run_verilator_lint.sh"
+          if ! git diff --exit-code -- "$RTL_ROOT/config_registers.sv" "$DOCS_ROOT/register_map.md"; then
+            echo "Generated artifacts are out of date. Run scripts/gen_register_artifacts.py and commit results." >&2
+            exit 1
+          fi

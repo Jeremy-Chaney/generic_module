@@ -8,14 +8,31 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
+$commonScript = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot "..\scripts\common.ps1"))
+if (-not (Test-Path $commonScript -PathType Leaf)) {
+    throw "Shared helper script not found: $commonScript"
+}
+. $commonScript
+Assert-RepoSetup
+
 if ($MaxParallel -lt 1) {
     throw "MaxParallel must be at least 1."
 }
 
-$dvRoot = (Resolve-Path $PSScriptRoot).Path
+$dvRoot = $env:DV_ROOT
 $simulateScript = Join-Path $dvRoot "simulate.ps1"
 if (-not (Test-Path $simulateScript -PathType Leaf)) {
     throw "simulate.ps1 not found at: $simulateScript"
+}
+
+$generatorScript = Join-Path $env:SCRIPTS_ROOT "gen_register_artifacts.py"
+if (Test-Path $generatorScript -PathType Leaf) {
+    Write-Host "Regenerating register artifacts from CSV..."
+    $pythonCmd = Get-PythonCommand
+    & $pythonCmd $generatorScript
+    if ($LASTEXITCODE -ne 0) {
+        throw "Register artifact generation failed."
+    }
 }
 
 $regressionFilePath = if ([System.IO.Path]::IsPathRooted($RegressionList)) {
@@ -85,7 +102,7 @@ function Start-SimJob {
         $exitCode = 0
 
         try {
-            $output = & $SimulateScript -TestPath $TestPath -Distro $Distro *>&1
+            $output = & $SimulateScript -TestPath $TestPath -Distro $Distro -SkipRegisterGeneration *>&1
             $exitCode = $LASTEXITCODE
             if ($null -eq $exitCode) {
                 $exitCode = 0

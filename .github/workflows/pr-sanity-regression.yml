@@ -7,7 +7,17 @@ on:
     paths:
       - 'rtl/**'
       - 'dv/**'
+      - 'scripts/**'
       - '.github/workflows/pr-sanity-regression.yml'
+
+env:
+  REPO_ROOT: ${{ github.workspace }}
+  SCRIPTS_ROOT: ${{ github.workspace }}/scripts
+  DV_ROOT: ${{ github.workspace }}/dv
+  RTL_ROOT: ${{ github.workspace }}/rtl
+  LINT_ROOT: ${{ github.workspace }}/lint
+  SCHEMATICS_ROOT: ${{ github.workspace }}/schematics
+  DOCS_ROOT: ${{ github.workspace }}/docs
 
 jobs:
   discover-tests:
@@ -60,19 +70,25 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y iverilog
 
+      - name: Generate register artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 "$SCRIPTS_ROOT/gen_register_artifacts.py"
+
       - name: Run simulation
         shell: bash
         env:
           TEST_PATH: ${{ matrix.test_path }}
         run: |
           set -euo pipefail
-          export GENERIC_MODULE_ROOT="$GITHUB_WORKSPACE"
+          export GENERIC_MODULE_ROOT="$REPO_ROOT"
 
-          if [[ -d "dv/$TEST_PATH" ]]; then
-            TEST_DIR="dv/$TEST_PATH"
+          if [[ -d "$DV_ROOT/$TEST_PATH" ]]; then
+            TEST_DIR="$DV_ROOT/$TEST_PATH"
             RESULTS_REL="$TEST_PATH"
-          elif [[ -f "dv/$TEST_PATH" ]]; then
-            TEST_DIR="$(dirname "dv/$TEST_PATH")"
+          elif [[ -f "$DV_ROOT/$TEST_PATH" ]]; then
+            TEST_DIR="$(dirname "$DV_ROOT/$TEST_PATH")"
             RESULTS_REL="$(dirname "$TEST_PATH")"
             if [[ "$RESULTS_REL" == "." ]]; then
               RESULTS_REL="test"
@@ -82,17 +98,17 @@ jobs:
             exit 1
           fi
 
-          RESULTS_DIR="dv/results/$RESULTS_REL"
+          RESULTS_DIR="$DV_ROOT/results/$RESULTS_REL"
           mkdir -p "$RESULTS_DIR"
 
           TMP_FILELIST_DIR="$(mktemp -d)"
-          cp dv/testbench/*.f "$TMP_FILELIST_DIR"/
+          cp "$DV_ROOT/testbench"/*.f "$TMP_FILELIST_DIR"/
           for filelist in "$TMP_FILELIST_DIR"/*.f; do
-            sed -i "s|\${GENERIC_MODULE_ROOT}|$GITHUB_WORKSPACE|g; s|\$GENERIC_MODULE_ROOT|$GITHUB_WORKSPACE|g" "$filelist"
+            sed -i "s|\${GENERIC_MODULE_ROOT}|$REPO_ROOT|g; s|\$GENERIC_MODULE_ROOT|$REPO_ROOT|g" "$filelist"
           done
 
           iverilog -g2012 \
-            -I dv/testbench \
+            -I "$DV_ROOT/testbench" \
             -I "$TEST_DIR" \
             -f "$TMP_FILELIST_DIR/TB.f" \
             -o "$RESULTS_DIR/sim.out" \

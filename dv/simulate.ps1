@@ -1,37 +1,19 @@
 param(
 	[string]$TestPath = "tests/basic_test",
 	[string]$Distro = "Ubuntu",
-	[switch]$Clean
+	[switch]$Clean,
+	[switch]$SkipRegisterGeneration
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
-function Get-RepoRoot {
-	param([Parameter(Mandatory = $true)][string]$StartDir)
-
-	$gitOutput = & git -C $StartDir rev-parse --show-toplevel 2>$null
-	if ($LASTEXITCODE -eq 0 -and -not [string]::IsNullOrWhiteSpace($gitOutput)) {
-		return $gitOutput.Trim()
-	}
-
-	throw "Could not resolve git repository root from: $StartDir"
+$commonScript = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot "..\scripts\common.ps1"))
+if (-not (Test-Path $commonScript -PathType Leaf)) {
+	throw "Shared helper script not found: $commonScript"
 }
-
-function Convert-ToWslPath {
-	param([Parameter(Mandatory = $true)][string]$WindowsPath)
-
-	$fullPath = [System.IO.Path]::GetFullPath($WindowsPath)
-	$normalized = $fullPath -replace "\\", "/"
-
-	if ($normalized -match "^([A-Za-z]):/(.*)$") {
-		$drive = $matches[1].ToLowerInvariant()
-		$rest = $matches[2]
-		return "/mnt/$drive/$rest"
-	}
-
-	throw "Unable to convert Windows path to WSL path: $WindowsPath"
-}
+. $commonScript
+Assert-RepoSetup
 
 function Resolve-TestSelection {
 	param(
@@ -66,14 +48,19 @@ function Resolve-TestSelection {
 		OutputRelativePath = $relativeOutputPath
 	}
 }
+$generatorScript = Join-Path $env:SCRIPTS_ROOT "gen_register_artifacts.py"
+if (-not $SkipRegisterGeneration -and (Test-Path $generatorScript -PathType Leaf)) {
+	Write-Host "Regenerating register artifacts from CSV..."
+	$pythonCmd = Get-PythonCommand
+	& $pythonCmd $generatorScript
+	if ($LASTEXITCODE -ne 0) {
+		throw "Register artifact generation failed."
+	}
+}
 
-
-$repoRoot = Get-RepoRoot -StartDir $PSScriptRoot
-$env:GENERIC_MODULE_ROOT = $repoRoot
-
-$dvRoot = Join-Path $env:GENERIC_MODULE_ROOT "dv"
+$dvRoot = $env:DV_ROOT
 if (-not (Test-Path $dvRoot -PathType Container)) {
-	throw "Expected dv directory not found under GENERIC_MODULE_ROOT: $dvRoot"
+	throw "Expected dv directory not found under DV_ROOT: $dvRoot"
 }
 
 if ($Clean -and -not $PSBoundParameters.ContainsKey("TestPath")) {
@@ -102,7 +89,7 @@ if (($PSBoundParameters.ContainsKey("TestPath") -or $Clean) -and (Test-Path $res
 New-Item -ItemType Directory -Path $resultsDir -Force | Out-Null
 
 $dvRootWsl = Convert-ToWslPath $dvRoot
-$repoRootWsl = Convert-ToWslPath $env:GENERIC_MODULE_ROOT
+$repoRootWsl = Convert-ToWslPath $env:REPO_ROOT
 $tbDirWsl = Convert-ToWslPath $tbDir.Path
 $testDirWsl = Convert-ToWslPath $testSelection.TestDir
 $resultsWsl = Convert-ToWslPath $resultsDir
@@ -131,7 +118,7 @@ cd '$resultsWsl'
 vvp sim.out | tee sim.log
 "@
 
-Write-Host "GENERIC_MODULE_ROOT=$env:GENERIC_MODULE_ROOT"
+Write-Host "REPO_ROOT=$env:REPO_ROOT"
 Write-Host "Running simulation for test path '$TestPath' in WSL distro '$Distro'..."
 try {
 	& wsl -d $Distro -- bash -lc ($bashScript -replace "`r", "")

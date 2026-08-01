@@ -1,18 +1,21 @@
 
 module generic_module #(
+    parameter int APB_DWIDTH = 32,
+    parameter int APB_AWIDTH = 32,
     parameter int WIDTH = 8
 ) (
     input clk,
     input reset_n,
-    input [31:0] paddr,
+    input [APB_AWIDTH - 1:0] paddr,
     input psel,
     input penable,
     input pwrite,
-    input [31:0] pwdata,
-    output logic [31:0] prdata,
+    input [APB_DWIDTH - 1:0] pwdata,
+    output logic [APB_DWIDTH - 1:0] prdata,
     output logic pready,
     output logic pslverr,
     input [WIDTH-1:0] data_in,
+    input logic irq_event_set,
     output wire [WIDTH-1:0]  data_out
 );
 
@@ -57,6 +60,7 @@ module generic_module #(
         .pready(pready),
         .pslverr(pslverr),
         .data_switch_cfg(data_switch_cfg),
-        .status_data(data_out)
+        .status_data(data_out),
+        .irq_event_set(irq_event_set)
     );
 endmodule
