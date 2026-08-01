@@ -141,6 +141,57 @@ Supported field access behaviors in the CSV:
 
 Do not hand-edit generated files. Update `scripts/register_map.csv`, rerun the generator, and commit generated artifacts in the same change.
 
+## Generate Documentation PDF
+
+The repository includes a PowerShell-based PDF generation flow for the module specification document.
+
+Local prerequisites:
+
+- Pandoc
+- XeLaTeX (MiKTeX or TeX Live)
+
+Run from repository root:
+
+```powershell
+.\docs\docs_gen.ps1
+```
+
+Generated output:
+
+- `docs/Generic_Module.pdf`
+
+The docs flow preprocesses the Markdown inputs before running Pandoc so that table captions and explicit pagebreak markers render correctly in the PDF.
+
+### Publish Docs From GitHub (Artifact + Release)
+
+You can generate the PDF directly from GitHub Actions and publish it on the repository page.
+
+Workflow file:
+
+- `.github/workflows/docs-generation.yml`
+
+How to run:
+
+Automatic run:
+
+1. Open a PR targeting `main` with changes under `docs/`, `scripts/register_map.csv`, or `scripts/gen_register_artifacts.py`.
+2. Merge the PR.
+3. The workflow runs on PR close, gated to merged PRs only.
+
+Manual run:
+
+1. Go to Actions -> `Documentation PDF` -> `Run workflow`.
+2. Leave `create_release=true` to publish the PDF to a release tag.
+3. Choose `release_tag` (default: `docs-latest`).
+
+What gets published:
+
+- Workflow artifact: `generic-module-docs-pdf`
+- Release asset on the selected tag:
+  - `Generic_Module.pdf`
+
+The workflow regenerates `docs/register_map.md` from `scripts/register_map.csv` before building the PDF so the published document always includes fresh register documentation.
+
 ## Web Schematic Trace Flow
 
 This repository maintains a single schematic tracing flow based on a lightweight Yosys synthesis and a local HTML viewer.

@@ -1,6 +1,11 @@
 
 # Input files for pandoc generation, in the desired order
 
+Set-StrictMode -Version Latest
+$ErrorActionPreference = "Stop"
+
+$scriptRoot = $PSScriptRoot
+
 $inputFiles = @(
     "pandocs_cover_and_config.md", # pandocs_cover_and_config.md should be first since it defines parameters for the entire document as well as the cover page.
     "lists_after_toc.md", # lists_after_toc.md should be second since it places the lists of figures and tables after the table of contents, which is a common convention.
@@ -10,7 +15,8 @@ $inputFiles = @(
 )
 
 $outputFile = "Generic_Module.pdf"
-$tempDir = ".pandoc_tmp"
+$outputPath = Join-Path $scriptRoot $outputFile
+$tempDir = Join-Path $scriptRoot ".pandoc_tmp"
 
 # Want table captions to render as above the tables in the markdown,
 # but pandocs needs them to be below the tables to render correctly in the PDF.
@@ -76,7 +82,8 @@ function Replace-PagebreakMarkers {
 }
 
 foreach ($inputFile in $inputFiles) {
-    if (-not (Test-Path $inputFile)) {
+    $inputPath = Join-Path $scriptRoot $inputFile
+    if (-not (Test-Path $inputPath)) {
         Write-Error "Input file not found: $inputFile"
         exit 1
     }
@@ -90,11 +97,6 @@ if (-not (Get-Command pandoc -ErrorAction SilentlyContinue)) {
 
 if (-not (Get-Command xelatex -ErrorAction SilentlyContinue)) {
     Write-Error "XeLaTeX is not available on PATH. Install a TeX distribution (MiKTeX or TeX Live) and restart your terminal."
-    exit 1
-}
-
-if (-not (Get-Command inkscape -ErrorAction SilentlyContinue)) {
-    Write-Error "Inkscape is not available on PATH. Install Inkscape and restart your terminal (winget install Inkscape.Inkscape)."
     exit 1
 }
 
@@ -119,7 +121,8 @@ if (Test-Path $fontsSource) {
 $tempFiles = @()
 foreach ($inputFile in $inputFiles) {
     $tempFile = Join-Path $tempDir $inputFile
-    $lines = Get-Content -Path $inputFile
+    $inputPath = Join-Path $scriptRoot $inputFile
+    $lines = Get-Content -Path $inputPath
     $processedLines = Move-TableCaptionsBelow -Lines $lines
     $processedLines = Replace-PagebreakMarkers -Lines $processedLines
     $processedLines | Set-Content -Path $tempFile -Encoding UTF8
@@ -127,13 +130,19 @@ foreach ($inputFile in $inputFiles) {
 }
 
 Write-Host "Generating PDF from:`n$($inputFiles -join "`n")"
-& pandoc @tempFiles -o $outputFile --pdf-engine=xelatex --resource-path=.
-$pandocExitCode = $LASTEXITCODE
+Push-Location $scriptRoot
+try {
+    & pandoc @tempFiles -o $outputPath --pdf-engine=xelatex --resource-path=$scriptRoot
+    $pandocExitCode = $LASTEXITCODE
+}
+finally {
+    Pop-Location
+}
 
 if ($pandocExitCode -ne 0) {
     Write-Error "Pandoc failed with exit code $pandocExitCode"
     exit $pandocExitCode
 }
 
-$outputPath = Resolve-Path $outputFile
-Write-Host "Wrote $outputPath"
+$resolvedOutputPath = Resolve-Path $outputPath
+Write-Host "Wrote $resolvedOutputPath"
