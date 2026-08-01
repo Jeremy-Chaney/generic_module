@@ -5,7 +5,7 @@
 ```
 
 <!-- markdownlint-disable MD045 -->
-[https://github.com/Jeremy-Chaney/generic_module]
+[github.com/Jeremy-Chaney/generic_module](https://github.com/Jeremy-Chaney/generic_module)
 <!-- markdownlint-enable MD045 -->
 
 <!-- pagebreak -->

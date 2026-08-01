@@ -9,7 +9,6 @@ classoption: [titlepage, twoside]
 titlepage-text-color: "7137C8"
 titlepage-rule-color: "7137C8"
 titlepage-rule-height: 2
-titlepage-logo: "../../../images/logos/8858_logo.png"
 toc: true
 toc-own-page: true
 numbersections: true

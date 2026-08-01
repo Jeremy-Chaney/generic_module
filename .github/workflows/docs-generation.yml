@@ -1,0 +1,89 @@
+name: Documentation PDF
+
+on:
+  pull_request:
+    types:
+      - closed
+    branches:
+      - main
+    paths:
+      - docs/**
+      - scripts/register_map.csv
+      - scripts/gen_register_artifacts.py
+      - .github/workflows/docs-generation.yml
+  workflow_dispatch:
+    inputs:
+      create_release:
+        description: Publish the generated PDF to a release tag
+        required: true
+        type: boolean
+        default: true
+      release_tag:
+        description: Release tag to create/update
+        required: true
+        default: docs-latest
+
+permissions:
+  contents: write
+
+env:
+  REPO_ROOT: ${{ github.workspace }}
+  SCRIPTS_ROOT: ${{ github.workspace }}/scripts
+  DV_ROOT: ${{ github.workspace }}/dv
+  RTL_ROOT: ${{ github.workspace }}/rtl
+  LINT_ROOT: ${{ github.workspace }}/lint
+  SCHEMATICS_ROOT: ${{ github.workspace }}/schematics
+  DOCS_ROOT: ${{ github.workspace }}/docs
+
+jobs:
+  build-pdf:
+    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.merged == true }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Pandoc
+        uses: r-lib/actions/setup-pandoc@v2
+        with:
+          pandoc-version: '3.1.11'
+
+      - name: Install XeLaTeX dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y \
+            texlive-latex-recommended \
+            texlive-latex-extra \
+            texlive-fonts-recommended \
+            texlive-fonts-extra \
+            texlive-xetex
+
+      - name: Regenerate register artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 "$SCRIPTS_ROOT/gen_register_artifacts.py"
+
+      - name: Generate PDF
+        shell: pwsh
+        working-directory: ${{ env.DOCS_ROOT }}
+        run: ./docs_gen.ps1
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: generic-module-docs-pdf
+          path: ${{ env.DOCS_ROOT }}/Generic_Module.pdf
+
+      - name: Publish release asset
+        if: ${{ github.event_name == 'pull_request' || inputs.create_release }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.release_tag || 'docs-latest' }}
+          name: Documentation PDF
+          prerelease: true
+          files: |
+            ${{ env.DOCS_ROOT }}/Generic_Module.pdf
