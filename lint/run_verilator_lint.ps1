@@ -5,12 +5,24 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
-$repoRoot = (& git -C $PSScriptRoot rev-parse --show-toplevel).Trim()
-if ([string]::IsNullOrWhiteSpace($repoRoot)) {
-    throw "Could not resolve repository root from: $PSScriptRoot"
+$commonScript = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot "..\scripts\common.ps1"))
+if (-not (Test-Path $commonScript -PathType Leaf)) {
+    throw "Shared helper script not found: $commonScript"
+}
+. $commonScript
+Assert-RepoSetup
+
+$generatorScript = Join-Path $env:SCRIPTS_ROOT "gen_register_artifacts.py"
+if (Test-Path $generatorScript -PathType Leaf) {
+    Write-Host "Regenerating register artifacts from CSV..."
+    $pythonCmd = Get-PythonCommand
+    & $pythonCmd $generatorScript
+    if ($LASTEXITCODE -ne 0) {
+        throw "Register artifact generation failed."
+    }
 }
 
-$repoRootWsl = "/mnt/$($repoRoot[0].ToString().ToLowerInvariant())/$($repoRoot.Substring(3) -replace '\\','/')"
+$repoRootWsl = Convert-ToWslPath $env:REPO_ROOT
 $lintScriptWsl = "$repoRootWsl/lint/run_verilator_lint.sh"
 
 $bashScript = @"

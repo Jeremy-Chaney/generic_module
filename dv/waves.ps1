@@ -8,31 +8,12 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
-function Get-RepoRoot {
-    param([Parameter(Mandatory = $true)][string]$StartDir)
-
-    $gitOutput = & git -C $StartDir rev-parse --show-toplevel 2>$null
-    if ($LASTEXITCODE -eq 0 -and -not [string]::IsNullOrWhiteSpace($gitOutput)) {
-        return $gitOutput.Trim()
-    }
-
-    throw "Could not resolve git repository root from: $StartDir"
+$commonScript = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot "..\scripts\common.ps1"))
+if (-not (Test-Path $commonScript -PathType Leaf)) {
+    throw "Shared helper script not found: $commonScript"
 }
-
-function Convert-ToWslPath {
-    param([Parameter(Mandatory = $true)][string]$WindowsPath)
-
-    $fullPath = [System.IO.Path]::GetFullPath($WindowsPath)
-    $normalized = $fullPath -replace "\\", "/"
-
-    if ($normalized -match "^([A-Za-z]):/(.*)$") {
-        $drive = $matches[1].ToLowerInvariant()
-        $rest = $matches[2]
-        return "/mnt/$drive/$rest"
-    }
-
-    throw "Unable to convert Windows path to WSL path: $WindowsPath"
-}
+. $commonScript
+Assert-RepoSetup
 
 function Resolve-TestSelection {
     param(
@@ -67,12 +48,9 @@ function Resolve-TestSelection {
     }
 }
 
-$repoRoot = Get-RepoRoot -StartDir $PSScriptRoot
-$env:GENERIC_MODULE_ROOT = $repoRoot
-
-$dvRoot = Join-Path $env:GENERIC_MODULE_ROOT "dv"
+$dvRoot = $env:DV_ROOT
 if (-not (Test-Path $dvRoot -PathType Container)) {
-    throw "Expected dv directory not found under GENERIC_MODULE_ROOT: $dvRoot"
+    throw "Expected dv directory not found under DV_ROOT: $dvRoot"
 }
 
 $testSelection = Resolve-TestSelection -RelativeTestPath $TestPath -DvRoot $dvRoot

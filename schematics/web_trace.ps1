@@ -9,39 +9,17 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
-function Get-RepoRoot {
-    param([Parameter(Mandatory = $true)][string]$StartDir)
-
-    $gitOutput = & git -C $StartDir rev-parse --show-toplevel 2>$null
-    if ($LASTEXITCODE -eq 0 -and -not [string]::IsNullOrWhiteSpace($gitOutput)) {
-        return $gitOutput.Trim()
-    }
-
-    throw "Could not resolve git repository root from: $StartDir"
+$commonScript = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot "..\scripts\common.ps1"))
+if (-not (Test-Path $commonScript -PathType Leaf)) {
+    throw "Shared helper script not found: $commonScript"
 }
-
-function Convert-ToWslPath {
-    param([Parameter(Mandatory = $true)][string]$WindowsPath)
-
-    $fullPath = [System.IO.Path]::GetFullPath($WindowsPath)
-    $normalized = $fullPath -replace "\\", "/"
-
-    if ($normalized -match "^([A-Za-z]):/(.*)$") {
-        $drive = $matches[1].ToLowerInvariant()
-        $rest = $matches[2]
-        return "/mnt/$drive/$rest"
-    }
-
-    throw "Unable to convert Windows path to WSL path: $WindowsPath"
-}
-
-$repoRoot = Get-RepoRoot -StartDir $PSScriptRoot
-$env:GENERIC_MODULE_ROOT = $repoRoot
+. $commonScript
+Assert-RepoSetup
 
 $fileListPath = if ([System.IO.Path]::IsPathRooted($FileList)) {
     $FileList
 } else {
-    Join-Path $repoRoot $FileList
+  Join-Path $env:REPO_ROOT $FileList
 }
 
 if (-not (Test-Path $fileListPath -PathType Leaf)) {
@@ -51,12 +29,12 @@ if (-not (Test-Path $fileListPath -PathType Leaf)) {
 $outDirPath = if ([System.IO.Path]::IsPathRooted($OutDir)) {
     $OutDir
 } else {
-    Join-Path $repoRoot $OutDir
+  Join-Path $env:REPO_ROOT $OutDir
 }
 
 New-Item -ItemType Directory -Path $outDirPath -Force | Out-Null
 
-$repoRootWsl = Convert-ToWslPath $repoRoot
+$repoRootWsl = Convert-ToWslPath $env:REPO_ROOT
 $outDirWsl = Convert-ToWslPath $outDirPath
 
 $synthJsonWsl = "$outDirWsl/$Top.synth.json"
@@ -113,7 +91,7 @@ yosys -p "$yosysCommand"
 netlistsvg '$synthJsonWsl' -o '$svgOutWsl'
 "@
 
-Write-Host "GENERIC_MODULE_ROOT=$env:GENERIC_MODULE_ROOT"
+Write-Host "REPO_ROOT=$env:REPO_ROOT"
 Write-Host "Generating synthesized web-trace artifacts for top '$Top' using WSL distro '$Distro'..."
 
 $tempScriptDir = Join-Path ([System.IO.Path]::GetTempPath()) ("gm_web_trace_{0}" -f [System.Guid]::NewGuid().ToString("N"))
