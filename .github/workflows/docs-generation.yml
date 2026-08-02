@@ -61,7 +61,8 @@ jobs:
             texlive-latex-extra \
             texlive-fonts-recommended \
             texlive-fonts-extra \
-            texlive-xetex
+            texlive-xetex \
+            librsvg2-bin
 
       - name: Install schematic generation dependencies
         shell: bash

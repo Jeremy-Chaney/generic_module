@@ -17,7 +17,7 @@ $inputFiles = @(
 
 $outputFile = "Generic_Module.pdf"
 $outputPath = Join-Path $scriptRoot $outputFile
-$tempDir = Join-Path $repoRoot ".pandoc_tmp"
+$tempDir = Join-Path $scriptRoot ".pandoc_tmp"
 
 # Want table captions to render as above the tables in the markdown,
 # but pandocs needs them to be below the tables to render correctly in the PDF.
@@ -133,7 +133,9 @@ foreach ($inputFile in $inputFiles) {
 Write-Host "Generating PDF from:`n$($inputFiles -join "`n")"
 Push-Location $scriptRoot
 try {
-    & pandoc @tempFiles -o $outputPath --pdf-engine=xelatex --resource-path=$scriptRoot
+    # Include docs root and repo root so relative links to ../schematics resolve in CI.
+    $resourcePath = @($scriptRoot, $repoRoot) -join [System.IO.Path]::PathSeparator
+    & pandoc @tempFiles -o $outputPath --pdf-engine=xelatex --resource-path=$resourcePath
     $pandocExitCode = $LASTEXITCODE
 }
 finally {
