@@ -1,0 +1,20 @@
+{
+    "python-envs.defaultEnvManager": "ms-python.python:system",
+    "files.associations": {
+        "*.sv": "systemverilog",
+        "*.svh": "systemverilog",
+        "*.v": "verilog",
+        "*.vh": "verilog"
+    },
+    "systemverilog.includeIndexing": [
+        "**/rtl/**/*.{sv,v,svh,vh}",
+        "**/dv/testbench/**/*.{sv,v,svh,vh}",
+        "**/dv/tests/basic_test/test.sv",
+        "**/dv/test_includes/**/*.{sv,v,svh,vh}"
+    ],
+    "systemverilog.excludeIndexing": "{**/.git/**,**/.venv/**,**/dv/results/**,**/schematics/web_trace/**,**/docs/**}",
+    "systemverilog.documentSymbolsPrecision": "full",
+    "systemverilog.enableIncrementalIndexing": true,
+    "systemverilog.compileOnSave": false,
+    "systemverilog.compileOnOpen": false
+}
