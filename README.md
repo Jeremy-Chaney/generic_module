@@ -57,6 +57,49 @@ gtkwave --version
 
 This DV flow is validated with Ubuntu under WSL and tools installed from Ubuntu apt.
 
+## VS Code Verilog/SystemVerilog Navigation
+
+This repository includes workspace settings for HDL source detection and extension recommendations so you can use Ctrl+click navigation (Go to Definition / Find References) in RTL and DV files.
+
+Recommended open-source VS Code extension:
+
+- `eirikpre.systemverilog` (primary language support for navigation)
+
+Optional companion extension:
+
+- `chipsalliance.verible` (formatting and lint-oriented tooling)
+
+After installing extensions:
+
+1. Reload the VS Code window (`Developer: Reload Window`).
+2. Open a file such as `rtl/generic_module.sv` and Ctrl+click a module instance or signal reference.
+3. Use `Shift+F12` for references and `F12` for definition navigation.
+
+If navigation is not available yet, close and reopen the workspace folder so the extension can rescan project files.
+
+Workspace indexing is scoped to RTL and DV source trees and excludes generated outputs (`dv/results`, `schematics/web_trace`, `.venv`, `.git`, and `docs`) to improve symbol resolution performance.
+
+If you add new HDL source folders, update `systemverilog.includeIndexing` in `.vscode/settings.json`.
+
+To reduce duplicate references from multiple directed tests, indexing includes only one active test file by default (`dv/tests/basic_test/test.sv`). If you are working on another test, change that single entry in `.vscode/settings.json` (for example to `dv/tests/w1c_test/test.sv`) and reload VS Code.
+
+### Run And Debug Compile Check
+
+This repository now includes VS Code Run and Debug entries in `.vscode/launch.json` for compile-only checks (no `vvp` execution).
+
+Available launch configs:
+
+- `SV Compile Check (select test)`
+- `SV Compile Check (active file folder)`
+
+Both call `dv/compile_check.ps1`, which reuses `dv/testbench/TB.f` and compiles with Icarus (`iverilog`) in WSL. Compile artifacts are written under:
+
+- `dv/results/compile_checks/...`
+
+Use this flow when you want a quick compile/syntax gate from the Run and Debug panel.
+
+By default, this compile check does not regenerate register artifacts. If needed, run `dv/compile_check.ps1 -RegenerateRegisters` from a terminal.
+
 ## Initialize PowerShell Session
 
 Before running the PowerShell helper scripts in this repo, initialize the shared path environment once per PowerShell session from the repository root:

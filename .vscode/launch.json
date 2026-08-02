@@ -1,0 +1,36 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "SV Compile Check (select test)",
+            "type": "node-terminal",
+            "request": "launch",
+            "command": "powershell -NoProfile -ExecutionPolicy Bypass -File \"${workspaceFolder}\\dv\\compile_check.ps1\" -TestPath \"${input:svTestPath}\" -Distro \"${input:wslDistro}\""
+        },
+        {
+            "name": "SV Compile Check (active file folder)",
+            "type": "node-terminal",
+            "request": "launch",
+            "command": "powershell -NoProfile -ExecutionPolicy Bypass -File \"${workspaceFolder}\\dv\\compile_check.ps1\" -TestPath \"${relativeFileDirname}\" -Distro \"${input:wslDistro}\""
+        }
+    ],
+    "inputs": [
+        {
+            "id": "svTestPath",
+            "type": "pickString",
+            "description": "Choose a directed test path for compile check",
+            "default": "tests/basic_test",
+            "options": [
+                "tests/basic_test",
+                "tests/submodule_test",
+                "tests/w1c_test"
+            ]
+        },
+        {
+            "id": "wslDistro",
+            "type": "promptString",
+            "description": "WSL distro name",
+            "default": "Ubuntu"
+        }
+    ]
+}
