@@ -1,0 +1,19 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "SV Compile Check",
+            "type": "node-terminal",
+            "request": "launch",
+            "command": "powershell -NoProfile -ExecutionPolicy Bypass -File \"${workspaceFolder}\\dv\\compile_check.ps1\" -TestPath \"tests/compile_test\" -Distro \"${input:wslDistro}\""
+        }
+    ],
+    "inputs": [
+        {
+            "id": "wslDistro",
+            "type": "promptString",
+            "description": "WSL distro name",
+            "default": "Ubuntu"
+        }
+    ]
+}
