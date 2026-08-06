@@ -1,0 +1,16 @@
+
+// Set up SystemVerilog support, UVM (if installed) and the file extensions ".v" and ".sv"
+-sv
+-uvm
++libext+.sv+.v
+-librescan
+
+// Set environment variable to the root module
++dvt_env+GENERIC_MODULE_ROOT=${GENERIC_MODULE_ROOT}
+
+// Read in the full testbench (includes DUT)
++dvt_init -work generic_module_testbench
+-f $GENERIC_MODULE_ROOT/dv/TB.f
+
+// Set the top module to the "tb" hierarchy
+-top tb

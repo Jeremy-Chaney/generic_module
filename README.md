@@ -100,6 +100,10 @@ Use this flow when you want a quick compile/syntax gate from the Run and Debug p
 
 By default, this compile check does not regenerate register artifacts. If needed, run `dv/compile_check.ps1 -RegenerateRegisters` from a terminal.
 
+### DVT
+
+Though it is not an open-source tool, this repository also contains the baseline hooks to use [DVT from AMIQ](https://marketplace.visualstudio.com/items?itemName=amiq.dvt). This is useful for navigating design hierarchies. If it's possible to acquire licenses to use the tool, this extension is recommended for navigating Verilog/SystemVerilog code in this workspace. Educational licenses are likely available.
+
 ## Initialize PowerShell Session
 
 Before running the PowerShell helper scripts in this repo, initialize the shared path environment once per PowerShell session from the repository root:
