@@ -6,21 +6,14 @@ SystemVerilog RTL and DV workspace for running module-level simulations with Ica
 
 ```text
 generic_module/
+├── setup.ps1           # Required to run before using any tools (sets up environment variables)
+├── .dvt/               # DVT setup folder
+├── docs/               # Pandocs documentation generation script
+├── dv/                 # Verification and simulation assets
+├── lint/               # Verilator Lint flow
 ├── rtl/                # RTL source files
 ├── schematics/         # Web schematic trace flow
-│   ├── web_trace.ps1
-│   └── install_schematic_tools.ps1
-└── dv/                 # Verification and simulation assets
-    ├── simulate.ps1    # Main simulation runner (WSL + iverilog + vvp)
-    ├── waves.ps1       # Waveform helper script
-    ├── testbench/      # Testbench infrastructure and file lists
-    │   ├── tb.sv
-    │   ├── TB.f
-    │   └── DUT.f
-    ├── tests/          # Test cases (each folder has test.sv)
-    │   ├── basic_test/
-    │   └── submodule_test/
-    └── results/        # Generated simulation outputs
+└── scripts/            # Commonly used scripts
 ```
 
 ## Prerequisites
