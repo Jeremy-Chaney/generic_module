@@ -34,8 +34,8 @@ generic_module/
 
 - WSL install (Microsoft): [https://learn.microsoft.com/windows/wsl/install]
 - WSL commands and distro management (Microsoft): [https://learn.microsoft.com/windows/wsl/basic-commands]
-- Ubuntu on WSL documentation (Canonical): http[s://documentation.ubuntu.com/wsl/latest/]
-- Icarus Verilog documentation: htt[ps://steveicarus.github.io/iverilog/]
+- Ubuntu on WSL documentation (Canonical): [https://documentation.ubuntu.com/wsl/latest/]
+- Icarus Verilog documentation: [https://steveicarus.github.io/iverilog/]
 - GTKWave project page: [https://gtkwave.sourceforge.net/]
 
 ### Tested Setup (Compatible With This Repo)
