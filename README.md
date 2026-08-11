@@ -78,14 +78,13 @@ To reduce duplicate references from multiple directed tests, indexing includes o
 
 ### Run And Debug Compile Check
 
-This repository now includes VS Code Run and Debug entries in `.vscode/launch.json` for compile-only checks (no `vvp` execution).
+This repository includes VS Code Run and Debug entries in `.vscode/launch.json` for compile-only checks (no `vvp` execution).
 
 Available launch configs:
 
-- `SV Compile Check (select test)`
-- `SV Compile Check (active file folder)`
+- `SV Compile Check`
 
-Both call `dv/compile_check.ps1`, which reuses `dv/testbench/TB.f` and compiles with Icarus (`iverilog`) in WSL. Compile artifacts are written under:
+Calls `dv/compile_check.ps1`, which reuses `dv/testbench/TB.f` and compiles with Icarus (`iverilog`) in WSL. Compile artifacts are written under:
 
 - `dv/results/compile_checks/...`
 
@@ -326,6 +325,16 @@ What gets published:
   - `<top_module>.web_trace.html`
 
 ## Lint RTL With Verilator
+
+This repository contains a basic lint setup to catch:
+
+- Port width mismatches
+- Port direction mismatches
+
+This tool does NOT support
+
+- Clock Domain Crossing (CDC) checks
+- Reset Domain Crossing (RDC) checks
 
 Install Verilator in Ubuntu/WSL:
 
