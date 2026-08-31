@@ -382,3 +382,18 @@ Typical outputs include:
 - `simulate.ps1` resolves repository paths for WSL and launches compile/run inside Linux.
 - The first argument is positional test path. It can be either a test folder (containing `test.sv`) or a direct `test.sv` file path relative to `dv`.
 - `run_regression.ps1` reads a regression list (for example `dv/sanity_regression`) and runs listed tests through `simulate.ps1` in parallel.
+
+**Not yet supported:**
+
+- Synthesis
+  - Investigating [Yosys](https://yosyshq.net/yosys/about.html) as an open-source synthesis tool
+- STA
+  - Investigating [OpenSTA](https://github.com/The-OpenROAD-Project/OpenSTA) as an open-source STA tool
+- LEC
+  - Not much open-source support, may re-use Yosys
+- ATPG
+  - Minimal much open-source tools
+  - Yosys should be able to insert scan chains
+- UPF
+  - Doesn't look to be supported anywhere
+  - This project be keeping everything in one power domain for now
