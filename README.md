@@ -6,21 +6,14 @@ SystemVerilog RTL and DV workspace for running module-level simulations with Ica
 
 ```text
 generic_module/
+├── setup.ps1           # Required to run before using any tools (sets up environment variables)
+├── .dvt/               # DVT setup folder
+├── docs/               # Pandocs documentation generation script
+├── dv/                 # Verification and simulation assets
+├── lint/               # Verilator Lint flow
 ├── rtl/                # RTL source files
 ├── schematics/         # Web schematic trace flow
-│   ├── web_trace.ps1
-│   └── install_schematic_tools.ps1
-└── dv/                 # Verification and simulation assets
-    ├── simulate.ps1    # Main simulation runner (WSL + iverilog + vvp)
-    ├── waves.ps1       # Waveform helper script
-    ├── testbench/      # Testbench infrastructure and file lists
-    │   ├── tb.sv
-    │   ├── TB.f
-    │   └── DUT.f
-    ├── tests/          # Test cases (each folder has test.sv)
-    │   ├── basic_test/
-    │   └── submodule_test/
-    └── results/        # Generated simulation outputs
+└── scripts/            # Commonly used scripts
 ```
 
 ## Prerequisites
@@ -34,8 +27,8 @@ generic_module/
 
 - WSL install (Microsoft): [https://learn.microsoft.com/windows/wsl/install]
 - WSL commands and distro management (Microsoft): [https://learn.microsoft.com/windows/wsl/basic-commands]
-- Ubuntu on WSL documentation (Canonical): http[s://documentation.ubuntu.com/wsl/latest/]
-- Icarus Verilog documentation: htt[ps://steveicarus.github.io/iverilog/]
+- Ubuntu on WSL documentation (Canonical): [https://documentation.ubuntu.com/wsl/latest/]
+- Icarus Verilog documentation: [https://steveicarus.github.io/iverilog/]
 - GTKWave project page: [https://gtkwave.sourceforge.net/]
 
 ### Tested Setup (Compatible With This Repo)
@@ -85,14 +78,13 @@ To reduce duplicate references from multiple directed tests, indexing includes o
 
 ### Run And Debug Compile Check
 
-This repository now includes VS Code Run and Debug entries in `.vscode/launch.json` for compile-only checks (no `vvp` execution).
+This repository includes VS Code Run and Debug entries in `.vscode/launch.json` for compile-only checks (no `vvp` execution).
 
 Available launch configs:
 
-- `SV Compile Check (select test)`
-- `SV Compile Check (active file folder)`
+- `SV Compile Check`
 
-Both call `dv/compile_check.ps1`, which reuses `dv/testbench/TB.f` and compiles with Icarus (`iverilog`) in WSL. Compile artifacts are written under:
+Calls `dv/compile_check.ps1`, which reuses `dv/testbench/TB.f` and compiles with Icarus (`iverilog`) in WSL. Compile artifacts are written under:
 
 - `dv/results/compile_checks/...`
 
@@ -334,6 +326,16 @@ What gets published:
 
 ## Lint RTL With Verilator
 
+This repository contains a basic lint setup to catch:
+
+- Port width mismatches
+- Port direction mismatches
+
+This tool does NOT support
+
+- Clock Domain Crossing (CDC) checks
+- Reset Domain Crossing (RDC) checks
+
 Install Verilator in Ubuntu/WSL:
 
 ```bash
@@ -380,3 +382,18 @@ Typical outputs include:
 - `simulate.ps1` resolves repository paths for WSL and launches compile/run inside Linux.
 - The first argument is positional test path. It can be either a test folder (containing `test.sv`) or a direct `test.sv` file path relative to `dv`.
 - `run_regression.ps1` reads a regression list (for example `dv/sanity_regression`) and runs listed tests through `simulate.ps1` in parallel.
+
+**Not yet supported:**
+
+- Synthesis
+  - Investigating [Yosys](https://yosyshq.net/yosys/about.html) as an open-source synthesis tool
+- STA
+  - Investigating [OpenSTA](https://github.com/The-OpenROAD-Project/OpenSTA) as an open-source STA tool
+- LEC
+  - Not much open-source support, may re-use Yosys
+- ATPG
+  - Minimal much open-source tools
+  - Yosys should be able to insert scan chains
+- UPF
+  - Doesn't look to be supported anywhere
+  - This project be keeping everything in one power domain for now
